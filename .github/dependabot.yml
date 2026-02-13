@@ -7,7 +7,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "05:00"
-      timezone: "America/New_York"
+      timezone: "Asia/Shanghai"
     labels:
       - "dependencies"
     commit-message:
@@ -18,7 +18,7 @@ updates:
         patterns:
           - "*"
     ignore:
-      - dependency-name: github.com/charmbracelet/bubbletea/v2
+      - dependency-name: github.com/purpose168/bubbletea-cn/v2
         versions:
           - v2.0.0-beta1
 
@@ -28,7 +28,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "05:00"
-      timezone: "America/New_York"
+      timezone: "Asia/Shanghai"
     labels:
       - "dependencies"
     commit-message:
@@ -45,7 +45,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "05:00"
-      timezone: "America/New_York"
+      timezone: "Asia/Shanghai"
     labels:
       - "dependencies"
     commit-message:

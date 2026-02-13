@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// enabledMCPs 返回已启用的 MCP 服务器迭代器
 func enabledMCPs() iter.Seq2[string, MCPServerConfig] {
 	return func(yield func(string, MCPServerConfig) bool) {
 		names := slices.Collect(maps.Keys(config.MCPServers))
@@ -32,21 +33,28 @@ func enabledMCPs() iter.Seq2[string, MCPServerConfig] {
 	}
 }
 
+// isMCPEnabled 检查 MCP 服务器是否已启用
+// name: MCP 服务器名称
+// 返回：是否已启用
 func isMCPEnabled(name string) bool {
 	return !slices.Contains(config.MCPDisable, "*") &&
 		!slices.Contains(config.MCPDisable, name)
 }
 
+// mcpList 列出所有 MCP 服务器
 func mcpList() {
 	for name := range config.MCPServers {
 		s := name
 		if isMCPEnabled(name) {
-			s += stdoutStyles().Timeago.Render(" (enabled)")
+			s += stdoutStyles().Timeago.Render(" (已启用)")
 		}
 		fmt.Println(s)
 	}
 }
 
+// mcpListTools 列出所有 MCP 工具
+// ctx: 上下文
+// 返回：错误信息
 func mcpListTools(ctx context.Context) error {
 	servers, err := mcpTools(ctx)
 	if err != nil {
@@ -61,6 +69,9 @@ func mcpListTools(ctx context.Context) error {
 	return nil
 }
 
+// mcpTools 获取所有 MCP 工具
+// ctx: 上下文
+// 返回：工具映射和错误信息
 func mcpTools(ctx context.Context) (map[string][]mcp.Tool, error) {
 	var mu sync.Mutex
 	var wg errgroup.Group
@@ -70,14 +81,14 @@ func mcpTools(ctx context.Context) (map[string][]mcp.Tool, error) {
 			serverTools, err := mcpToolsFor(ctx, sname, server)
 			if errors.Is(err, context.DeadlineExceeded) {
 				return modsError{
-					err:    fmt.Errorf("timeout while listing tools for %q - make sure the configuration is correct. If your server requires a docker container, make sure it's running", sname),
-					reason: "Could not list tools",
+					err:    fmt.Errorf("列出 %q 的工具时超时 - 请确保配置正确。如果您的服务器需要 docker 容器，请确保它正在运行", sname),
+					reason: "无法列出工具",
 				}
 			}
 			if err != nil {
 				return modsError{
 					err:    err,
-					reason: "Could not list tools",
+					reason: "无法列出工具",
 				}
 			}
 			mu.Lock()
@@ -92,7 +103,10 @@ func mcpTools(ctx context.Context) (map[string][]mcp.Tool, error) {
 	return result, nil
 }
 
-// initMcpClient creates and initializes an MCP client.
+// initMcpClient 创建并初始化 MCP 客户端
+// ctx: 上下文
+// server: MCP 服务器配置
+// 返回：MCP 客户端和错误信息
 func initMcpClient(ctx context.Context, server MCPServerConfig) (*client.Client, error) {
 	var cli *client.Client
 	var err error
@@ -109,51 +123,61 @@ func initMcpClient(ctx context.Context, server MCPServerConfig) (*client.Client,
 	case "http":
 		cli, err = client.NewStreamableHttpClient(server.URL)
 	default:
-		return nil, fmt.Errorf("unsupported MCP server type: %q, supported types are: stdio, sse, http", server.Type)
+		return nil, fmt.Errorf("不支持的 MCP 服务器类型: %q，支持的类型有: stdio、sse、http", server.Type)
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create MCP client: %w", err)
+		return nil, fmt.Errorf("创建 MCP 客户端失败: %w", err)
 	}
 
 	if err := cli.Start(ctx); err != nil {
 		cli.Close() //nolint:errcheck,gosec
-		return nil, fmt.Errorf("failed to start MCP client: %w", err)
+		return nil, fmt.Errorf("启动 MCP 客户端失败: %w", err)
 	}
 
 	if _, err := cli.Initialize(ctx, mcp.InitializeRequest{}); err != nil {
 		cli.Close() //nolint:errcheck,gosec
-		return nil, fmt.Errorf("failed to initialize MCP client: %w", err)
+		return nil, fmt.Errorf("初始化 MCP 客户端失败: %w", err)
 	}
 
 	return cli, nil
 }
 
+// mcpToolsFor 获取指定 MCP 服务器的工具列表
+// ctx: 上下文
+// name: 服务器名称
+// server: MCP 服务器配置
+// 返回：工具列表和错误信息
 func mcpToolsFor(ctx context.Context, name string, server MCPServerConfig) ([]mcp.Tool, error) {
 	cli, err := initMcpClient(ctx, server)
 	if err != nil {
-		return nil, fmt.Errorf("could not setup %s: %w", name, err)
+		return nil, fmt.Errorf("无法设置 %s: %w", name, err)
 	}
 	defer cli.Close() //nolint:errcheck
 
 	tools, err := cli.ListTools(ctx, mcp.ListToolsRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("could not setup %s: %w", name, err)
+		return nil, fmt.Errorf("无法设置 %s: %w", name, err)
 	}
 	return tools.Tools, nil
 }
 
+// toolCall 调用工具
+// ctx: 上下文
+// name: 工具名称（格式: server_tool）
+// data: 工具参数 JSON 数据
+// 返回：工具执行结果和错误信息
 func toolCall(ctx context.Context, name string, data []byte) (string, error) {
 	sname, tool, ok := strings.Cut(name, "_")
 	if !ok {
-		return "", fmt.Errorf("mcp: invalid tool name: %q", name)
+		return "", fmt.Errorf("mcp: 无效的工具名称: %q", name)
 	}
 	server, ok := config.MCPServers[sname]
 	if !ok {
-		return "", fmt.Errorf("mcp: invalid server name: %q", sname)
+		return "", fmt.Errorf("mcp: 无效的服务器名称: %q", sname)
 	}
 	if !isMCPEnabled(sname) {
-		return "", fmt.Errorf("mcp: server is disabled: %q", sname)
+		return "", fmt.Errorf("mcp: 服务器已禁用: %q", sname)
 	}
 	client, err := initMcpClient(ctx, server)
 	if err != nil {
@@ -182,7 +206,7 @@ func toolCall(ctx context.Context, name string, data []byte) (string, error) {
 		case mcp.TextContent:
 			sb.WriteString(content.Text)
 		default:
-			sb.WriteString("[Non-text content]")
+			sb.WriteString("[非文本内容]")
 		}
 	}
 

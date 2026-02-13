@@ -7,43 +7,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// flagParseErrorTests 标志解析错误测试用例
 var flagParseErrorTests = []struct {
-	in     string
-	flag   string
-	reason string
+	in     string // 输入字符串
+	flag   string // 标志名称
+	reason string // 原因
 }{
 	{
 		"unknown flag: --nope",
 		"--nope",
-		"Flag %s is missing.",
+		"标志 %s 不存在。",
 	},
 	{
 		"flag needs an argument: --delete",
 		"--delete",
-		"Flag %s needs an argument.",
+		"标志 %s 需要参数。",
 	},
 	{
 		"flag needs an argument: 'd' in -d",
 		"-d",
-		"Flag %s needs an argument.",
+		"标志 %s 需要参数。",
 	},
 	{
 		`invalid argument "20dd" for "--delete-older-than" flag: time: unknown unit "dd" in duration "20dd"`,
 		"--delete-older-than",
-		"Flag %s have an invalid argument.",
+		"标志 %s 的参数无效。",
 	},
 	{
 		`invalid argument "sdfjasdl" for "--max-tokens" flag: strconv.ParseInt: parsing "sdfjasdl": invalid syntax`,
 		"--max-tokens",
-		"Flag %s have an invalid argument.",
+		"标志 %s 的参数无效。",
 	},
 	{
 		`invalid argument "nope" for "-r, --raw" flag: strconv.ParseBool: parsing "nope": invalid syntax`,
 		"-r, --raw",
-		"Flag %s have an invalid argument.",
+		"标志 %s 的参数无效。",
 	},
 }
 
+// TestFlagParseError 测试标志解析错误
 func TestFlagParseError(t *testing.T) {
 	for _, tf := range flagParseErrorTests {
 		t.Run(tf.in, func(t *testing.T) {

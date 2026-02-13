@@ -1,4 +1,4 @@
-// Package main provides the mods CLI.
+// Package main 提供 mods CLI 工具。
 package main
 
 import (
@@ -26,13 +26,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Build vars.
+// Build vars 构建变量
 var (
 	//nolint: gochecknoglobals
-	Version   = ""
-	CommitSHA = ""
+	Version   = "" // 版本号
+	CommitSHA = "" // 提交 SHA
 )
 
+// buildVersion 构建版本信息
 func buildVersion() {
 	if len(CommitSHA) >= sha1short {
 		vt := rootCmd.VersionTemplate()
@@ -42,18 +43,18 @@ func buildVersion() {
 		if info, ok := debug.ReadBuildInfo(); ok && info.Main.Sum != "" {
 			Version = info.Main.Version
 		} else {
-			Version = "unknown (built from source)"
+			Version = "未知（从源代码构建）"
 		}
 	}
 	rootCmd.Version = Version
 }
 
 func init() {
-	// XXX: unset error styles in Glamour dark and light styles.
-	// On the glamour side, we should probably add constructors for generating
-	// default styles so they can be essentially copied and altered without
-	// mutating the definitions in Glamour itself (or relying on any deep
-	// copying).
+	// XXX: 在 Glamour 深色和浅色样式中取消设置错误样式。
+	// 在 glamour 方面，我们可能应该添加构造函数来生成
+	// 默认样式，以便它们可以基本上被复制和修改，而无需
+	// 在 Glamour 本身中改变定义（或依赖任何深度
+	// 复制）。
 	glamour.DarkStyleConfig.CodeBlock.Chroma.Error.BackgroundColor = new(string)
 	glamour.LightStyleConfig.CodeBlock.Chroma.Error.BackgroundColor = new(string)
 
@@ -68,12 +69,12 @@ func init() {
 }
 
 var (
-	config = defaultConfig()
-	db     *convoDB
+	config = defaultConfig() // 配置实例
+	db     *convoDB          // 数据库实例
 
 	rootCmd = &cobra.Command{
 		Use:           "mods",
-		Short:         "GPT on the command line. Built for pipelines.",
+		Short:         "命令行上的 GPT。专为管道构建。",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Example:       randomExample(),
@@ -106,25 +107,25 @@ var (
 				if err := askInfo(); err != nil && err == huh.ErrUserAborted {
 					return modsError{
 						err:    err,
-						reason: "User canceled.",
+						reason: "用户已取消。",
 					}
 				} else if err != nil {
 					return modsError{
 						err:    err,
-						reason: "Prompt failed.",
+						reason: "提示失败。",
 					}
 				}
 			}
 
 			cache, err := cache.NewConversations(config.CachePath)
 			if err != nil {
-				return modsError{err, "Couldn't start Bubble Tea program."}
+				return modsError{err, "无法启动 Bubble Tea 程序。"}
 			}
 			mods := newMods(cmd.Context(), stderrRenderer(), &config, db, cache)
 			p := tea.NewProgram(mods, opts...)
 			m, err := p.Run()
 			if err != nil {
-				return modsError{err, "Couldn't start Bubble Tea program."}
+				return modsError{err, "无法启动 Bubble Tea 程序。"}
 			}
 
 			mods = m.(*Mods)
@@ -143,9 +144,9 @@ var (
 						return nil
 					}
 				}
-				fmt.Printf("Configuration: %s\n", filepath.Dir(config.SettingsPath))
+				fmt.Printf("配置: %s\n", filepath.Dir(config.SettingsPath))
 				//nolint:mnd
-				fmt.Printf("%*sCache: %s\n", 8, " ", config.CachePath)
+				fmt.Printf("%*s缓存: %s\n", 8, " ", config.CachePath)
 				return nil
 			}
 
@@ -154,7 +155,7 @@ var (
 				if err != nil {
 					return modsError{
 						err:    err,
-						reason: "Could not edit your settings file.",
+						reason: "无法编辑您的设置文件。",
 					}
 				}
 				c.Stdin = os.Stdin
@@ -162,13 +163,13 @@ var (
 				c.Stderr = os.Stderr
 				if err := c.Run(); err != nil {
 					return modsError{err, fmt.Sprintf(
-						"Missing %s.",
+						"缺少 %s。",
 						stderrStyles().InlineCode.Render("$EDITOR"),
 					)}
 				}
 
 				if !config.Quiet {
-					fmt.Fprintln(os.Stderr, "Wrote config file to:", config.SettingsPath)
+					fmt.Fprintln(os.Stderr, "配置文件已写入:", config.SettingsPath)
 				}
 				return nil
 			}
@@ -179,10 +180,10 @@ var (
 
 			if mods.Input == "" && isNoArgs() {
 				return modsError{
-					reason: "You haven't provided any prompt input.",
+					reason: "您没有提供任何提示输入。",
 					err: newUserErrorf(
-						"You can give your prompt as arguments and/or pipe it from STDIN.\nExample: %s",
-						stdoutStyles().InlineCode.Render("mods [prompt]"),
+						"您可以通过参数提供提示和/或通过 STDIN 管道传输。\n示例: %s",
+						stdoutStyles().InlineCode.Render("mods [提示]"),
 					),
 				}
 			}
@@ -218,7 +219,7 @@ var (
 				return deleteConversationOlderThan()
 			}
 
-			// raw mode already prints the output, no need to print it again
+			// 原始模式已经打印输出，无需再次打印
 			if isOutputTTY() && !config.Raw {
 				switch {
 				case mods.glamOutput != "":
@@ -241,7 +242,7 @@ var (
 	}
 )
 
-var memprofile bool
+var memprofile bool // 内存分析标志
 
 func initFlags() {
 	flags := rootCmd.Flags()
@@ -338,31 +339,29 @@ func main() {
 	var err error
 	config, err = ensureConfig()
 	if err != nil {
-		handleError(modsError{err, "Could not load your configuration file."})
-		// if user is editing the settings, only print out the error, but do
-		// not exit.
+		handleError(modsError{err, "无法加载您的配置文件。"})
+		// 如果用户正在编辑设置，只打印错误，但不退出。
 		if !slices.Contains(os.Args, "--settings") {
 			os.Exit(1)
 		}
 	}
 
-	// XXX: this must come after creating the config.
+	// XXX: 这必须在创建配置之后执行。
 	initFlags()
 
 	if !isCompletionCmd(os.Args) && !isManCmd(os.Args) && !isVersionOrHelpCmd(os.Args) {
 		db, err = openDB(filepath.Join(config.CachePath, "conversations", "mods.db"))
 		if err != nil {
-			handleError(modsError{err, "Could not open database."})
+			handleError(modsError{err, "无法打开数据库。"})
 			os.Exit(1)
 		}
 		defer db.Close() //nolint:errcheck
 	}
 
 	if isCompletionCmd(os.Args) {
-		// XXX: since mods doesn't have any sub-commands, Cobra won't create
-		// the default `completion` command. Forcefully create the completion
-		// related sub-commands by adding a fake command when completions are
-		// being used.
+		// XXX: 由于 mods 没有任何子命令，Cobra 不会创建
+		// 默认的 `completion` 命令。在使用补全时，
+		// 通过添加一个假命令来强制创建补全相关的子命令。
 		rootCmd.AddCommand(&cobra.Command{
 			Use:    "____fake_command_to_enable_completions",
 			Hidden: true,
@@ -373,7 +372,7 @@ func main() {
 	if isManCmd(os.Args) {
 		rootCmd.AddCommand(&cobra.Command{
 			Use:                   "man",
-			Short:                 "Generates manpages",
+			Short:                 "生成手册页",
 			SilenceUsage:          true,
 			DisableFlagsInUseLine: true,
 			Hidden:                true,
@@ -398,6 +397,7 @@ func main() {
 	}
 }
 
+// maybeWriteMemProfile 可能写入内存分析文件
 func maybeWriteMemProfile() {
 	if !memprofile {
 		return
@@ -437,9 +437,10 @@ func maybeWriteMemProfile() {
 	}
 }
 
+// handleError 处理错误
 func handleError(err error) {
 	maybeWriteMemProfile()
-	// exhaust stdin
+	// 排空 stdin
 	if !isInputTTY() {
 		_, _ = io.ReadAll(os.Stdin)
 	}
@@ -453,9 +454,9 @@ func handleError(err error) {
 		format += "%s\n\n"
 		args = []any{
 			fmt.Sprintf(
-				"Check out %s %s",
+				"查看 %s %s",
 				stderrStyles().InlineCode.Render("mods -h"),
-				stderrStyles().Comment.Render("for help."),
+				stderrStyles().Comment.Render("获取帮助。"),
 			),
 			fmt.Sprintf(
 				ferr.ReasonFormat(),
@@ -467,7 +468,7 @@ func handleError(err error) {
 			stderrStyles().ErrPadding.Render(stderrStyles().ErrorHeader.String(), merr.reason),
 		}
 
-		// Skip the error details if the user simply canceled out of huh.
+		// 如果用户只是取消了 huh，则跳过错误详细信息。
 		if merr.err != huh.ErrUserAborted {
 			format += "%s\n\n"
 			args = append(args, stderrStyles().ErrPadding.Render(stderrStyles().ErrorDetails.Render(err.Error())))
@@ -481,54 +482,56 @@ func handleError(err error) {
 	fmt.Fprintf(os.Stderr, format, args...)
 }
 
+// resetSettings 重置设置
 func resetSettings() error {
 	_, err := os.Stat(config.SettingsPath)
 	if err != nil {
-		return modsError{err, "Couldn't read config file."}
+		return modsError{err, "无法读取配置文件。"}
 	}
 	inputFile, err := os.Open(config.SettingsPath)
 	if err != nil {
-		return modsError{err, "Couldn't open config file."}
+		return modsError{err, "无法打开配置文件。"}
 	}
 	defer inputFile.Close() //nolint:errcheck
 	outputFile, err := os.Create(config.SettingsPath + ".bak")
 	if err != nil {
-		return modsError{err, "Couldn't backup config file."}
+		return modsError{err, "无法备份配置文件。"}
 	}
 	defer outputFile.Close() //nolint:errcheck
 	_, err = io.Copy(outputFile, inputFile)
 	if err != nil {
-		return modsError{err, "Couldn't write config file."}
+		return modsError{err, "无法写入配置文件。"}
 	}
-	// The copy was successful, so now delete the original file
+	// 复制成功，现在删除原始文件
 	err = os.Remove(config.SettingsPath)
 	if err != nil {
-		return modsError{err, "Couldn't remove config file."}
+		return modsError{err, "无法删除配置文件。"}
 	}
 	err = writeConfigFile(config.SettingsPath)
 	if err != nil {
-		return modsError{err, "Couldn't write new config file."}
+		return modsError{err, "无法写入新配置文件。"}
 	}
 	if !config.Quiet {
-		fmt.Fprintln(os.Stderr, "\nSettings restored to defaults!")
+		fmt.Fprintln(os.Stderr, "\n设置已恢复为默认值！")
 		fmt.Fprintf(os.Stderr,
 			"\n  %s %s\n\n",
-			stderrStyles().Comment.Render("Your old settings have been saved to:"),
+			stderrStyles().Comment.Render("您的旧设置已保存到:"),
 			stderrStyles().Link.Render(config.SettingsPath+".bak"),
 		)
 	}
 	return nil
 }
 
+// deleteConversationOlderThan 删除早于指定时间的对话
 func deleteConversationOlderThan() error {
 	conversations, err := db.ListOlderThan(config.DeleteOlderThan)
 	if err != nil {
-		return modsError{err, "Couldn't find conversation to delete."}
+		return modsError{err, "无法找到要删除的对话。"}
 	}
 
 	if len(conversations) == 0 {
 		if !config.Quiet {
-			fmt.Fprintln(os.Stderr, "No conversations found.")
+			fmt.Fprintln(os.Stderr, "未找到对话。")
 			return nil
 		}
 		return nil
@@ -540,50 +543,51 @@ func deleteConversationOlderThan() error {
 		if !isOutputTTY() || !isInputTTY() {
 			fmt.Fprintln(os.Stderr)
 			return newUserErrorf(
-				"To delete the conversations above, run: %s",
+				"要删除上述对话，请运行: %s",
 				strings.Join(append(os.Args, "--quiet"), " "),
 			)
 		}
 		var confirm bool
 		if err := huh.Run(
 			huh.NewConfirm().
-				Title(fmt.Sprintf("Delete conversations older than %s?", config.DeleteOlderThan)).
-				Description(fmt.Sprintf("This will delete all the %d conversations listed above.", len(conversations))).
+				Title(fmt.Sprintf("删除早于 %s 的对话？", config.DeleteOlderThan)).
+				Description(fmt.Sprintf("这将删除上面列出的所有 %d 个对话。", len(conversations))).
 				Value(&confirm),
 		); err != nil {
-			return modsError{err, "Couldn't delete old conversations."}
+			return modsError{err, "无法删除旧对话。"}
 		}
 		if !confirm {
-			return newUserErrorf("Aborted by user")
+			return newUserErrorf("用户中止")
 		}
 	}
 
 	cache, err := cache.NewConversations(config.CachePath)
 	if err != nil {
-		return modsError{err, "Couldn't delete conversation."}
+		return modsError{err, "无法删除对话。"}
 	}
 	for _, c := range conversations {
 		if err := db.Delete(c.ID); err != nil {
-			return modsError{err, "Couldn't delete conversation."}
+			return modsError{err, "无法删除对话。"}
 		}
 
 		if err := cache.Delete(c.ID); err != nil {
-			return modsError{err, "Couldn't delete conversation."}
+			return modsError{err, "无法删除对话。"}
 		}
 
 		if !config.Quiet {
-			fmt.Fprintln(os.Stderr, "Conversation deleted:", c.ID[:sha1minLen])
+			fmt.Fprintln(os.Stderr, "对话已删除:", c.ID[:sha1minLen])
 		}
 	}
 
 	return nil
 }
 
+// deleteConversations 删除对话
 func deleteConversations() error {
 	for _, del := range config.Delete {
 		convo, err := db.Find(del)
 		if err != nil {
-			return modsError{err, "Couldn't find conversation to delete."}
+			return modsError{err, "无法找到要删除的对话。"}
 		}
 		if err := deleteConversation(convo); err != nil {
 			return err
@@ -592,33 +596,35 @@ func deleteConversations() error {
 	return nil
 }
 
+// deleteConversation 删除单个对话
 func deleteConversation(convo *Conversation) error {
 	if err := db.Delete(convo.ID); err != nil {
-		return modsError{err, "Couldn't delete conversation."}
+		return modsError{err, "无法删除对话。"}
 	}
 
 	cache, err := cache.NewConversations(config.CachePath)
 	if err != nil {
-		return modsError{err, "Couldn't delete conversation."}
+		return modsError{err, "无法删除对话。"}
 	}
 	if err := cache.Delete(convo.ID); err != nil {
-		return modsError{err, "Couldn't delete conversation."}
+		return modsError{err, "无法删除对话。"}
 	}
 
 	if !config.Quiet {
-		fmt.Fprintln(os.Stderr, "Conversation deleted:", convo.ID[:sha1minLen])
+		fmt.Fprintln(os.Stderr, "对话已删除:", convo.ID[:sha1minLen])
 	}
 	return nil
 }
 
+// listConversations 列出对话
 func listConversations(raw bool) error {
 	conversations, err := db.List()
 	if err != nil {
-		return modsError{err, "Couldn't list saves."}
+		return modsError{err, "无法列出保存的对话。"}
 	}
 
 	if len(conversations) == 0 {
-		fmt.Fprintln(os.Stderr, "No conversations found.")
+		fmt.Fprintln(os.Stderr, "未找到对话。")
 		return nil
 	}
 
@@ -630,6 +636,9 @@ func listConversations(raw bool) error {
 	return nil
 }
 
+// roleNames 获取角色名称列表
+// prefix: 前缀过滤
+// 返回：角色名称列表
 func roleNames(prefix string) []string {
 	roles := make([]string, 0, len(config.Roles))
 	for role := range config.Roles {
@@ -642,16 +651,20 @@ func roleNames(prefix string) []string {
 	return roles
 }
 
+// listRoles 列出角色
 func listRoles() {
 	for _, role := range roleNames("") {
 		s := role
 		if role == config.Role {
-			s = role + stdoutStyles().Timeago.Render(" (default)")
+			s = role + stdoutStyles().Timeago.Render(" (默认)")
 		}
 		fmt.Println(s)
 	}
 }
 
+// makeOptions 创建选项列表
+// conversations: 对话列表
+// 返回：选项列表
 func makeOptions(conversations []Conversation) []huh.Option[string] {
 	opts := make([]huh.Option[string], 0, len(conversations))
 	for _, c := range conversations {
@@ -669,12 +682,14 @@ func makeOptions(conversations []Conversation) []huh.Option[string] {
 	return opts
 }
 
+// selectFromList 从列表中选择
+// conversations: 对话列表
 func selectFromList(conversations []Conversation) {
 	var selected string
 	if err := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title("Conversations").
+				Title("对话").
 				Value(&selected).
 				Options(makeOptions(conversations)...),
 		),
@@ -687,10 +702,10 @@ func selectFromList(conversations []Conversation) {
 
 	_ = clipboard.WriteAll(selected)
 	termenv.Copy(selected)
-	printConfirmation("COPIED", selected)
-	// suggest actions to use this conversation ID
+	printConfirmation("已复制", selected)
+	// 建议使用此对话 ID 的操作
 	fmt.Println(stdoutStyles().Comment.Render(
-		"You can use this conversation ID with the following commands:",
+		"您可以在以下命令中使用此对话 ID:",
 	))
 	suggestions := []string{"show", "continue", "delete"}
 	for _, flag := range suggestions {
@@ -702,6 +717,8 @@ func selectFromList(conversations []Conversation) {
 	}
 }
 
+// printList 打印对话列表
+// conversations: 对话列表
 func printList(conversations []Conversation) {
 	for _, conversation := range conversations {
 		_, _ = fmt.Fprintf(
@@ -714,12 +731,15 @@ func printList(conversations []Conversation) {
 	}
 }
 
+// saveConversation 保存对话
+// mods: Mods 实例
+// 返回：错误信息
 func saveConversation(mods *Mods) error {
 	if config.NoCache {
 		if !config.Quiet {
 			fmt.Fprintf(
 				os.Stderr,
-				"\nConversation was not saved because %s or %s is set.\n",
+				"\n对话未保存，因为设置了 %s 或 %s。\n",
 				stderrStyles().InlineCode.Render("--no-cache"),
 				stderrStyles().InlineCode.Render("NO_CACHE"),
 			)
@@ -727,7 +747,7 @@ func saveConversation(mods *Mods) error {
 		return nil
 	}
 
-	// if message is a sha1, use the last prompt instead.
+	// 如果消息是 sha1，则使用最后的提示代替。
 	id := config.cacheWriteToID
 	title := strings.TrimSpace(config.cacheWriteToTitle)
 
@@ -736,7 +756,7 @@ func saveConversation(mods *Mods) error {
 	}
 
 	errReason := fmt.Sprintf(
-		"There was a problem writing %s to the cache. Use %s / %s to disable it.",
+		"将 %s 写入缓存时出现问题。使用 %s / %s 禁用它。",
 		config.cacheWriteToID,
 		stderrStyles().InlineCode.Render("--no-cache"),
 		stderrStyles().InlineCode.Render("NO_CACHE"),
@@ -749,14 +769,14 @@ func saveConversation(mods *Mods) error {
 		return modsError{err, errReason}
 	}
 	if err := db.Save(id, title, config.API, config.Model); err != nil {
-		_ = cache.Delete(id) // remove leftovers
+		_ = cache.Delete(id) // 删除残留数据
 		return modsError{err, errReason}
 	}
 
 	if !config.Quiet {
 		fmt.Fprintln(
 			os.Stderr,
-			"\nConversation saved:",
+			"\n对话已保存:",
 			stderrStyles().InlineCode.Render(config.cacheWriteToID[:sha1short]),
 			stderrStyles().Comment.Render(title),
 		)
@@ -764,6 +784,7 @@ func saveConversation(mods *Mods) error {
 	return nil
 }
 
+// isNoArgs 检查是否没有参数
 func isNoArgs() bool {
 	return config.Prefix == "" &&
 		config.Show == "" &&
@@ -780,6 +801,7 @@ func isNoArgs() bool {
 		!config.ResetSettings
 }
 
+// askInfo 询问信息
 func askInfo() error {
 	var foundModel bool
 	apis := make([]huh.Option[string], 0, len(config.APIs))
@@ -789,12 +811,11 @@ func askInfo() error {
 		for name, model := range api.Models {
 			opts[api.Name] = append(opts[api.Name], huh.NewOption(name, name))
 
-			// checks if this is the model we intend to use if not using
-			// `--ask-model`:
+			// 检查这是否是我们要使用的模型（如果不使用 `--ask-model`）：
 			if !config.AskModel &&
 				(config.API == "" || config.API == api.Name) &&
 				(config.Model == name || slices.Contains(model.Aliases, config.Model)) {
-				// if it is, adjusts api and model so its cheaper later on.
+				// 如果是，调整 api 和 model 以便后续更便宜。
 				config.API = api.Name
 				config.Model = name
 				foundModel = true
@@ -811,35 +832,35 @@ func askInfo() error {
 		}
 	}
 
-	// wrapping is done by the caller
+	// 包装由调用者完成
 	//nolint:wrapcheck
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title("Choose the API:").
+				Title("选择 API:").
 				Options(apis...).
 				Value(&config.API),
 			huh.NewSelect[string]().
 				TitleFunc(func() string {
-					return fmt.Sprintf("Choose the model for '%s':", config.API)
+					return fmt.Sprintf("选择 '%s' 的模型:", config.API)
 				}, &config.API).
 				OptionsFunc(func() []huh.Option[string] {
 					return opts[config.API]
 				}, &config.API).
 				Value(&config.Model),
 		).WithHideFunc(func() bool {
-			// AskModel is true if the user is passing a flag to ask;
-			// FoundModel is true if a model is found for whatever config the
-			// user has (either --api/--model or default-api and
-			// default-model in settings).
-			// So, it'll only hide this if the user didn't run with
-			// `--ask-model` AND the configuration yields a valid model.
+			// AskModel 为 true 表示用户传递了询问标志；
+			// FoundModel 为 true 表示找到了用户配置的模型
+			// （无论是 --api/--model 还是设置中的 default-api 和
+			// default-model）。
+			// 因此，只有当用户没有使用 `--ask-model` 运行
+			// 且配置产生了有效模型时，才会隐藏此项。
 			return !config.AskModel && foundModel
 		}),
 		huh.NewGroup(
 			huh.NewText().
 				TitleFunc(func() string {
-					return fmt.Sprintf("Enter a prompt for %s/%s:", config.API, config.Model)
+					return fmt.Sprintf("输入 %s/%s 的提示:", config.API, config.Model)
 				}, &config.Model).
 				Value(&config.Prefix),
 		).WithHideFunc(func() bool {
@@ -850,6 +871,7 @@ func askInfo() error {
 		Run()
 }
 
+// isManCmd 检查是否为手册命令
 //nolint:mnd
 func isManCmd(args []string) bool {
 	if len(args) == 2 {
@@ -861,6 +883,7 @@ func isManCmd(args []string) bool {
 	return false
 }
 
+// isCompletionCmd 检查是否为补全命令
 //nolint:mnd
 func isCompletionCmd(args []string) bool {
 	if len(args) <= 1 {
@@ -894,6 +917,7 @@ func isCompletionCmd(args []string) bool {
 	return false
 }
 
+// isVersionOrHelpCmd 检查是否为版本或帮助命令
 //nolint:mnd
 func isVersionOrHelpCmd(args []string) bool {
 	if len(args) <= 1 {
@@ -907,6 +931,9 @@ func isVersionOrHelpCmd(args []string) bool {
 	return false
 }
 
+// themeFrom 从主题名称获取主题
+// theme: 主题名称
+// 返回：主题实例
 func themeFrom(theme string) *huh.Theme {
 	switch theme {
 	case "dracula":
@@ -920,11 +947,11 @@ func themeFrom(theme string) *huh.Theme {
 	}
 }
 
-// creates a temp file, opens it in user's editor, and then returns its contents.
+// prefixFromEditor 创建临时文件，在用户的编辑器中打开它，然后返回其内容。
 func prefixFromEditor() (string, error) {
 	f, err := os.CreateTemp("", "prompt")
 	if err != nil {
-		return "", fmt.Errorf("could not create temporary file: %w", err)
+		return "", fmt.Errorf("无法创建临时文件: %w", err)
 	}
 	_ = f.Close()
 	defer func() { _ = os.Remove(f.Name()) }()
@@ -933,17 +960,17 @@ func prefixFromEditor() (string, error) {
 		f.Name(),
 	)
 	if err != nil {
-		return "", fmt.Errorf("could not open editor: %w", err)
+		return "", fmt.Errorf("无法打开编辑器: %w", err)
 	}
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("could not open editor: %w", err)
+		return "", fmt.Errorf("无法打开编辑器: %w", err)
 	}
 	prompt, err := os.ReadFile(f.Name())
 	if err != nil {
-		return "", fmt.Errorf("could not read file: %w", err)
+		return "", fmt.Errorf("无法读取文件: %w", err)
 	}
 	return string(prompt), nil
 }

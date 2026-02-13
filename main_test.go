@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestIsCompletionCmd 测试是否为补全命令
 func TestIsCompletionCmd(t *testing.T) {
 	for args, is := range map[string]bool{
 		"":                                     false,
@@ -34,12 +35,13 @@ func TestIsCompletionCmd(t *testing.T) {
 		t.Run(args, func(t *testing.T) {
 			vargs := append([]string{"mods"}, strings.Fields(args)...)
 			if b := isCompletionCmd(vargs); b != is {
-				t.Errorf("%v: expected %v, got %v", vargs, is, b)
+				t.Errorf("%v: 期望 %v, 得到 %v", vargs, is, b)
 			}
 		})
 	}
 }
 
+// TestIsManCmd 测试是否为手册命令
 func TestIsManCmd(t *testing.T) {
 	for args, is := range map[string]bool{
 		"":                    false,
@@ -55,7 +57,7 @@ func TestIsManCmd(t *testing.T) {
 		t.Run(args, func(t *testing.T) {
 			vargs := append([]string{"mods"}, strings.Fields(args)...)
 			if b := isManCmd(vargs); b != is {
-				t.Errorf("%v: expected %v, got %v", vargs, is, b)
+				t.Errorf("%v: 期望 %v, 得到 %v", vargs, is, b)
 			}
 		})
 	}

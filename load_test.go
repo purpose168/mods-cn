@@ -8,15 +8,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestLoad 测试加载功能
 func TestLoad(t *testing.T) {
 	const content = "just text"
-	t.Run("normal msg", func(t *testing.T) {
+	// 测试普通消息
+	t.Run("普通消息", func(t *testing.T) {
 		msg, err := loadMsg(content)
 		require.NoError(t, err)
 		require.Equal(t, content, msg)
 	})
 
-	t.Run("file", func(t *testing.T) {
+	// 测试文件
+	t.Run("文件", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "foo.txt")
 		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 
@@ -25,13 +28,15 @@ func TestLoad(t *testing.T) {
 		require.Equal(t, content, msg)
 	})
 
-	t.Run("http url", func(t *testing.T) {
+	// 测试 HTTP URL
+	t.Run("HTTP URL", func(t *testing.T) {
 		msg, err := loadMsg("http://raw.githubusercontent.com/charmbracelet/mods/main/LICENSE")
 		require.NoError(t, err)
 		require.Contains(t, msg, "MIT License")
 	})
 
-	t.Run("https url", func(t *testing.T) {
+	// 测试 HTTPS URL
+	t.Run("HTTPS URL", func(t *testing.T) {
 		msg, err := loadMsg("https://raw.githubusercontent.com/charmbracelet/mods/main/LICENSE")
 		require.NoError(t, err)
 		require.Contains(t, msg, "MIT License")

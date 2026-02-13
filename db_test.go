@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testDB 创建测试数据库
 func testDB(tb testing.TB) *convoDB {
 	db, err := openDB(":memory:")
 	require.NoError(tb, err)
@@ -17,119 +18,131 @@ func testDB(tb testing.TB) *convoDB {
 	return db
 }
 
+// TestConvoDB 测试对话数据库功能
 func TestConvoDB(t *testing.T) {
 	const testid = "df31ae23ab8b75b5643c2f846c570997edc71333"
 
-	t.Run("list-empty", func(t *testing.T) {
+	// 测试空列表
+	t.Run("空列表", func(t *testing.T) {
 		db := testDB(t)
 		list, err := db.List()
 		require.NoError(t, err)
 		require.Empty(t, list)
 	})
 
-	t.Run("save", func(t *testing.T) {
+	// 测试保存
+	t.Run("保存", func(t *testing.T) {
 		db := testDB(t)
 
-		require.NoError(t, db.Save(testid, "message 1", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 1", "openai", "gpt-4o"))
 
 		convo, err := db.Find("df31")
 		require.NoError(t, err)
 		require.Equal(t, testid, convo.ID)
-		require.Equal(t, "message 1", convo.Title)
+		require.Equal(t, "消息 1", convo.Title)
 
 		list, err := db.List()
 		require.NoError(t, err)
 		require.Len(t, list, 1)
 	})
 
-	t.Run("save no id", func(t *testing.T) {
+	// 测试保存无 ID
+	t.Run("保存无 ID", func(t *testing.T) {
 		db := testDB(t)
-		require.Error(t, db.Save("", "message 1", "openai", "gpt-4o"))
+		require.Error(t, db.Save("", "消息 1", "openai", "gpt-4o"))
 	})
 
-	t.Run("save no message", func(t *testing.T) {
+	// 测试保存无消息
+	t.Run("保存无消息", func(t *testing.T) {
 		db := testDB(t)
 		require.Error(t, db.Save(newConversationID(), "", "openai", "gpt-4o"))
 	})
 
-	t.Run("update", func(t *testing.T) {
+	// 测试更新
+	t.Run("更新", func(t *testing.T) {
 		db := testDB(t)
 
-		require.NoError(t, db.Save(testid, "message 1", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 1", "openai", "gpt-4o"))
 		time.Sleep(100 * time.Millisecond)
-		require.NoError(t, db.Save(testid, "message 2", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 2", "openai", "gpt-4o"))
 
 		convo, err := db.Find("df31")
 		require.NoError(t, err)
 		require.Equal(t, testid, convo.ID)
-		require.Equal(t, "message 2", convo.Title)
+		require.Equal(t, "消息 2", convo.Title)
 
 		list, err := db.List()
 		require.NoError(t, err)
 		require.Len(t, list, 1)
 	})
 
-	t.Run("find head single", func(t *testing.T) {
+	// 测试查找单个最新记录
+	t.Run("查找单个最新记录", func(t *testing.T) {
 		db := testDB(t)
 
-		require.NoError(t, db.Save(testid, "message 2", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 2", "openai", "gpt-4o"))
 
 		head, err := db.FindHEAD()
 		require.NoError(t, err)
 		require.Equal(t, testid, head.ID)
-		require.Equal(t, "message 2", head.Title)
+		require.Equal(t, "消息 2", head.Title)
 	})
 
-	t.Run("find head multiple", func(t *testing.T) {
+	// 测试查找多个最新记录
+	t.Run("查找多个最新记录", func(t *testing.T) {
 		db := testDB(t)
 
-		require.NoError(t, db.Save(testid, "message 2", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 2", "openai", "gpt-4o"))
 		time.Sleep(time.Millisecond * 100)
 		nextConvo := newConversationID()
-		require.NoError(t, db.Save(nextConvo, "another message", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(nextConvo, "另一条消息", "openai", "gpt-4o"))
 
 		head, err := db.FindHEAD()
 		require.NoError(t, err)
 		require.Equal(t, nextConvo, head.ID)
-		require.Equal(t, "another message", head.Title)
+		require.Equal(t, "另一条消息", head.Title)
 
 		list, err := db.List()
 		require.NoError(t, err)
 		require.Len(t, list, 2)
 	})
 
-	t.Run("find by title", func(t *testing.T) {
+	// 测试按标题查找
+	t.Run("按标题查找", func(t *testing.T) {
 		db := testDB(t)
 
-		require.NoError(t, db.Save(newConversationID(), "message 1", "openai", "gpt-4o"))
-		require.NoError(t, db.Save(testid, "message 2", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(newConversationID(), "消息 1", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 2", "openai", "gpt-4o"))
 
-		convo, err := db.Find("message 2")
+		convo, err := db.Find("消息 2")
 		require.NoError(t, err)
 		require.Equal(t, testid, convo.ID)
-		require.Equal(t, "message 2", convo.Title)
+		require.Equal(t, "消息 2", convo.Title)
 	})
 
-	t.Run("find match nothing", func(t *testing.T) {
+	// 测试无匹配查找
+	t.Run("无匹配查找", func(t *testing.T) {
 		db := testDB(t)
-		require.NoError(t, db.Save(testid, "message 1", "openai", "gpt-4o"))
-		_, err := db.Find("message")
+		require.NoError(t, db.Save(testid, "消息 1", "openai", "gpt-4o"))
+		_, err := db.Find("消息")
 		require.ErrorIs(t, err, errNoMatches)
 	})
 
-	t.Run("find match many", func(t *testing.T) {
+	// 测试多个匹配查找
+	t.Run("多个匹配查找", func(t *testing.T) {
 		db := testDB(t)
 		const testid2 = "df31ae23ab9b75b5641c2f846c571000edc71315"
-		require.NoError(t, db.Save(testid, "message 1", "openai", "gpt-4o"))
-		require.NoError(t, db.Save(testid2, "message 2", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 1", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid2, "消息 2", "openai", "gpt-4o"))
 		_, err := db.Find("df31ae")
 		require.ErrorIs(t, err, errManyMatches)
 	})
 
-	t.Run("delete", func(t *testing.T) {
+	// 测试删除
+	t.Run("删除", func(t *testing.T) {
 		db := testDB(t)
 
-		require.NoError(t, db.Save(testid, "message 1", "openai", "gpt-4o"))
+		require.NoError(t, db.Save(testid, "消息 1", "openai", "gpt-4o"))
 		require.NoError(t, db.Delete(newConversationID()))
 
 		list, err := db.List()
@@ -145,13 +158,14 @@ func TestConvoDB(t *testing.T) {
 		require.Empty(t, list)
 	})
 
-	t.Run("completions", func(t *testing.T) {
+	// 测试自动补全
+	t.Run("自动补全", func(t *testing.T) {
 		db := testDB(t)
 
 		const testid1 = "fc5012d8c67073ea0a46a3c05488a0e1d87df74b"
-		const title1 = "some title"
+		const title1 = "某个标题"
 		const testid2 = "6c33f71694bf41a18c844a96d1f62f153e5f6f44"
-		const title2 = "football teams"
+		const title2 = "足球队"
 		require.NoError(t, db.Save(testid1, title1, "openai", "gpt-4o"))
 		require.NoError(t, db.Save(testid2, title2, "openai", "gpt-4o"))
 

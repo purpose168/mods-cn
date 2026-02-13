@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	charCyclingFPS  = time.Second / 22
-	colorCycleFPS   = time.Second / 5
-	maxCyclingChars = 120
+	charCyclingFPS  = time.Second / 22 // 字符循环帧率
+	colorCycleFPS   = time.Second / 5  // 颜色循环帧率
+	maxCyclingChars = 120              // 最大循环字符数
 )
 
 var charRunes = []rune("0123456789abcdefABCDEF~!@#$£€%^&*()+=_")
@@ -23,23 +23,25 @@ var charRunes = []rune("0123456789abcdefABCDEF~!@#$£€%^&*()+=_")
 type charState int
 
 const (
-	charInitialState charState = iota
-	charCyclingState
-	charEndOfLifeState
+	charInitialState   charState = iota // 字符初始状态
+	charCyclingState                    // 字符循环状态
+	charEndOfLifeState                  // 字符生命周期结束状态
 )
 
-// cyclingChar is a single animated character.
+// cyclingChar 表示单个动画字符。
 type cyclingChar struct {
-	finalValue   rune // if < 0 cycle forever
-	currentValue rune
-	initialDelay time.Duration
-	lifetime     time.Duration
+	finalValue   rune          // 最终值，如果小于 0 则永久循环
+	currentValue rune          // 当前值
+	initialDelay time.Duration // 初始延迟时间
+	lifetime     time.Duration // 生命周期时长
 }
 
+// randomRune 返回一个随机字符
 func (c cyclingChar) randomRune() rune {
 	return (charRunes)[rand.Intn(len(charRunes))] //nolint:gosec
 }
 
+// state 返回字符的当前状态
 func (c cyclingChar) state(start time.Time) charState {
 	now := time.Now()
 	if now.Before(start.Add(c.initialDelay)) {
@@ -53,6 +55,7 @@ func (c cyclingChar) state(start time.Time) charState {
 
 type stepCharsMsg struct{}
 
+// stepChars 返回字符步进命令
 func stepChars() tea.Cmd {
 	return tea.Tick(charCyclingFPS, func(time.Time) tea.Msg {
 		return stepCharsMsg{}
@@ -61,25 +64,30 @@ func stepChars() tea.Cmd {
 
 type colorCycleMsg struct{}
 
+// cycleColors 返回颜色循环命令
 func cycleColors() tea.Cmd {
 	return tea.Tick(colorCycleFPS, func(time.Time) tea.Msg {
 		return colorCycleMsg{}
 	})
 }
 
-// anim is the model that manages the animation that displays while the
-// output is being generated.
+// anim 是管理动画的模型，在生成输出时显示动画效果。
 type anim struct {
-	start           time.Time
-	cyclingChars    []cyclingChar
-	labelChars      []cyclingChar
-	ramp            []lipgloss.Style
-	label           []rune
-	ellipsis        spinner.Model
-	ellipsisStarted bool
-	styles          styles
+	start           time.Time        // 动画开始时间
+	cyclingChars    []cyclingChar    // 循环字符列表
+	labelChars      []cyclingChar    // 标签字符列表
+	ramp            []lipgloss.Style // 颜色渐变样式
+	label           []rune           // 标签文本
+	ellipsis        spinner.Model    // 省略号旋转器模型
+	ellipsisStarted bool             // 省略号是否已启动
+	styles          styles           // 样式配置
 }
 
+// newAnim 创建一个新的动画实例
+// cyclingCharsSize: 循环字符数量
+// label: 标签文本
+// r: lipgloss 渲染器
+// s: 样式配置
 func newAnim(cyclingCharsSize uint, label string, r *lipgloss.Renderer, s styles) anim {
 	// #nosec G115
 	n := int(cyclingCharsSize)
@@ -99,18 +107,18 @@ func newAnim(cyclingCharsSize uint, label string, r *lipgloss.Renderer, s styles
 		styles:   s,
 	}
 
-	// If we're in truecolor mode (and there are enough cycling characters)
-	// color the cycling characters with a gradient ramp.
+	// 如果处于真彩色模式（并且有足够的循环字符）
+	// 使用渐变色彩条为循环字符着色
 	const minRampSize = 3
 	if n >= minRampSize && r.ColorProfile() == termenv.TrueColor {
-		// Note: double capacity for color cycling as we'll need to reverse and
-		// append the ramp for seamless transitions.
+		// 注意：为颜色循环预留双倍容量，因为我们需要反转并
+		// 追加色彩条以实现无缝过渡
 		c.ramp = make([]lipgloss.Style, n, n*2) //nolint:mnd
 		ramp := makeGradientRamp(n)
 		for i, color := range ramp {
 			c.ramp[i] = r.NewStyle().Foreground(color)
 		}
-		c.ramp = append(c.ramp, reverse(c.ramp)...) // reverse and append for color cycling
+		c.ramp = append(c.ramp, reverse(c.ramp)...) // 反转并追加以实现颜色循环
 	}
 
 	makeDelay := func(a int32, b time.Duration) time.Duration {
@@ -121,17 +129,17 @@ func newAnim(cyclingCharsSize uint, label string, r *lipgloss.Renderer, s styles
 		return makeDelay(8, 60) //nolint:mnd
 	}
 
-	// Initial characters that cycle forever.
+	// 永久循环的初始字符
 	c.cyclingChars = make([]cyclingChar, n)
 
 	for i := 0; i < n; i++ {
 		c.cyclingChars[i] = cyclingChar{
-			finalValue:   -1, // cycle forever
+			finalValue:   -1, // 永久循环
 			initialDelay: makeInitialDelay(),
 		}
 	}
 
-	// Label text that only cycles for a little while.
+	// 仅循环一小段时间的标签文本
 	c.labelChars = make([]cyclingChar, len(c.label))
 
 	for i, r := range c.label {
@@ -145,12 +153,12 @@ func newAnim(cyclingCharsSize uint, label string, r *lipgloss.Renderer, s styles
 	return c
 }
 
-// Init initializes the animation.
+// Init 初始化动画
 func (anim) Init() tea.Cmd {
 	return tea.Batch(stepChars(), cycleColors())
 }
 
-// Update handles messages.
+// Update 处理消息
 func (a anim) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg.(type) {
@@ -166,8 +174,8 @@ func (a anim) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			if eol == len(a.label) {
-				// If our entire label has reached end of life, start the
-				// ellipsis "spinner" after a short pause.
+				// 如果整个标签都已到达生命周期终点，在短暂暂停后
+				// 启动省略号"旋转器"
 				a.ellipsisStarted = true
 				cmd = tea.Tick(time.Millisecond*220, func(time.Time) tea.Msg { //nolint:mnd
 					return a.ellipsis.Tick()
@@ -192,6 +200,7 @@ func (a anim) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
+// updateChars 更新字符状态
 func (a *anim) updateChars(chars *[]cyclingChar) {
 	for i, c := range *chars {
 		switch c.state(a.start) {
@@ -205,7 +214,7 @@ func (a *anim) updateChars(chars *[]cyclingChar) {
 	}
 }
 
-// View renders the animation.
+// View 渲染动画视图
 func (a anim) View() string {
 	var b strings.Builder
 
@@ -224,9 +233,12 @@ func (a anim) View() string {
 	return b.String() + a.ellipsis.View()
 }
 
+// makeGradientRamp 创建渐变色彩条
+// length: 色彩条长度
+// 返回：lipgloss 颜色数组
 func makeGradientRamp(length int) []lipgloss.Color {
-	const startColor = "#F967DC"
-	const endColor = "#6B50FF"
+	const startColor = "#F967DC" // 起始颜色（粉红色）
+	const endColor = "#6B50FF"   // 结束颜色（紫色）
 	var (
 		c        = make([]lipgloss.Color, length)
 		start, _ = colorful.Hex(startColor)
@@ -239,6 +251,10 @@ func makeGradientRamp(length int) []lipgloss.Color {
 	return c
 }
 
+// makeGradientText 创建渐变文本
+// baseStyle: 基础样式
+// str: 要渲染的字符串
+// 返回：带渐变效果的字符串
 func makeGradientText(baseStyle lipgloss.Style, str string) string {
 	const minSize = 3
 	if len(str) < minSize {
@@ -252,6 +268,9 @@ func makeGradientText(baseStyle lipgloss.Style, str string) string {
 	return b.String()
 }
 
+// reverse 反转切片
+// in: 输入切片
+// 返回：反转后的切片
 func reverse[T any](in []T) []T {
 	out := make([]T, len(in))
 	copy(out, in[:])

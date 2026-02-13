@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// styles 样式定义结构体
 type styles struct {
 	AppName,
 	CliArgs,
@@ -27,6 +28,7 @@ type styles struct {
 	Timeago lipgloss.Style
 }
 
+// makeStyles 创建样式配置
 func makeStyles(r *lipgloss.Renderer) (s styles) {
 	const horizontalEdgePadding = 2
 	s.AppName = r.NewStyle().Bold(true)
@@ -49,12 +51,13 @@ func makeStyles(r *lipgloss.Renderer) (s styles) {
 	return s
 }
 
-// action messages
+// action messages 操作消息
 
 const defaultAction = "WROTE"
 
 var outputHeader = lipgloss.NewStyle().Foreground(lipgloss.Color("#F1F1F1")).Background(lipgloss.Color("#6C50FF")).Bold(true).Padding(0, 1).MarginRight(1)
 
+// printConfirmation 打印确认信息
 func printConfirmation(action, content string) {
 	if action == "" {
 		action = defaultAction
